@@ -1,12 +1,9 @@
 [build]
-  # Perintah ini menjalankan instalasi Node.js (npm install)
-  # diikuti dengan instalasi Python (pip install -r requirements.txt)
-  # Dan kemudian menjalankan perintah build utama Anda.
+  # Perintah ini akan menjalankan instalasi Node.js dan Python secara berurutan
   command = "npm install && pip install -r requirements.txt && npm run build"
 
-  # Karena ini proyek AI Studio template, kita asumsikan outputnya adalah folder "dist"
+  # Asumsi folder output (hasil build) adalah 'dist'
   publish = "dist" 
 
-# Bagian ini memastikan Netlify menggunakan Python yang kita set di dashboard
 [build.environment]
   PYTHON_VERSION = "3.11"
