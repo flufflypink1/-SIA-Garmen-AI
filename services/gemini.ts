@@ -1,30 +1,59 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AgentType, RouteResult } from "../types";
 
-// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-// The API key is obtained exclusively from the environment variable.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper untuk inisialisasi AI yang aman
+const getAI = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey || apiKey === '""' || apiKey.includes('YOUR_API_KEY')) {
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+/**
+ * MOCK LOGIC: Digunakan jika tidak ada API Key
+ */
+const getMockRoute = (query: string): RouteResult => {
+  const lower = query.toLowerCase();
+  
+  if (lower.includes('faktur') || lower.includes('jual') || lower.includes('pendapatan') || lower.includes('pesanan')) {
+    return { targetAgent: AgentType.SALES_AND_REVENUE, reasoning: "[DEMO] Terdeteksi kata kunci penjualan/faktur." };
+  }
+  if (lower.includes('beli') || lower.includes('stok') || lower.includes('sedia') || lower.includes('pemasok') || lower.includes('supplier')) {
+    return { targetAgent: AgentType.PURCHASING_AND_INVENTORY, reasoning: "[DEMO] Terdeteksi kata kunci pembelian/stok." };
+  }
+  if (lower.includes('hpp') || lower.includes('biaya') || lower.includes('wip') || lower.includes('overhead') || lower.includes('produksi')) {
+    return { targetAgent: AgentType.MANUFACTURING_COST_ACCOUNTING, reasoning: "[DEMO] Terdeteksi kata kunci biaya produksi/HPP." };
+  }
+  if (lower.includes('laba') || lower.includes('rugi') || lower.includes('neraca') || lower.includes('uang') || lower.includes('laporan')) {
+    return { targetAgent: AgentType.FINANCIAL_REPORTING, reasoning: "[DEMO] Terdeteksi kata kunci laporan keuangan." };
+  }
+
+  return { targetAgent: AgentType.ROUTER, reasoning: "[DEMO] Menggunakan agen default." };
+};
 
 /**
  * Step 1: Router Agent
- * Decides which sub-agent should handle the user's request.
  */
 export const routeQuery = async (query: string): Promise<RouteResult> => {
+  const ai = getAI();
+  
+  // Jika tidak ada API Key, gunakan Mock
+  if (!ai) {
+    console.warn("API Key missing, using Mock Router");
+    return getMockRoute(query);
+  }
+
   const systemInstruction = `
-Sebagai Agen Utama dalam Sistem Informasi Akuntansi (SIA) Manufaktur Garmen, peran Anda adalah menjadi router cerdas (Manage Accounting Operations). Anda harus secara konsisten dan akurat mengarahkan permintaan pengguna ke salah satu dari empat Sub-Agen spesialis di bawah.
+Sebagai Agen Utama dalam Sistem Informasi Akuntansi (SIA) Manufaktur Garmen, peran Anda adalah menjadi router cerdas.
 
-DEFINISI SUB-AGEN SPESIALIS:
-1. SALES_AND_REVENUE: Memproses pesanan penjualan, menghasilkan faktur, dan melacak pendapatan real-time.
-2. PURCHASING_AND_INVENTORY: Mengelola pengadaan bahan baku, memantau tingkat persediaan, dan menyediakan informasi pemasok.
-3. FINANCIAL_REPORTING: Menghasilkan laporan keuangan formal (Laba Rugi, Neraca, Arus Kas) dan laporan analitis.
-4. MANUFACTURING_COST_ACCOUNTING: Menghitung HPP (Harga Pokok Produksi), melacak biaya (bahan baku, tenaga kerja, overhead), dan menilai persediaan WIP/Barang Jadi.
+DEFINISI SUB-AGEN:
+1. SALES_AND_REVENUE: Faktur, Penjualan, Pendapatan.
+2. PURCHASING_AND_INVENTORY: Stok, Bahan Baku, Pemasok, PO.
+3. FINANCIAL_REPORTING: Laporan Keuangan, Neraca, Laba Rugi, Arus Kas.
+4. MANUFACTURING_COST_ACCOUNTING: HPP, Biaya Produksi, Overhead, WIP.
 
-LOGIKA PERUTEAN:
-* Jika permintaan terkait FAKTUR, PESANAN PENJUALAN, atau PELACAKAN PENDAPATAN -> SALES_AND_REVENUE.
-* Jika permintaan terkait PEMBELIAN BAHAN BAKU, TINGKAT STOK/INVENTARIS, atau INFORMASI PEMASOK -> PURCHASING_AND_INVENTORY.
-* Jika permintaan terkait LAPORAN LABA RUGI, NERACA, ARUS KAS, atau KEPATUHAN AKUNTANSI -> FINANCIAL_REPORTING.
-* Jika permintaan terkait PERHITUNGAN HPP, BIAYA PRODUKSI, PENGGUNAAN BAHAN BAKU, atau PENILAIAN WIP -> MANUFACTURING_COST_ACCOUNTING.
-* Jika tidak jelas, gunakan penilaian terbaik Anda berdasarkan konteks manufaktur garmen.
+Pilih salah satu agen berdasarkan input user.
   `;
 
   const responseSchema: Schema = {
@@ -41,7 +70,7 @@ LOGIKA PERUTEAN:
       },
       reasoning: {
         type: Type.STRING,
-        description: "Penjelasan singkat mengapa agen ini dipilih.",
+        description: "Alasan pemilihan agen.",
       },
     },
     required: ["targetAgent", "reasoning"],
@@ -59,42 +88,43 @@ LOGIKA PERUTEAN:
     });
 
     const jsonText = response.text || "{}";
-    const result = JSON.parse(jsonText) as RouteResult;
-    return result;
+    return JSON.parse(jsonText) as RouteResult;
 
   } catch (error) {
     console.error("Routing error:", error);
-    // Fallback to General Reporting if routing fails
-    return {
-      targetAgent: AgentType.FINANCIAL_REPORTING,
-      reasoning: "Gagal melakukan routing otomatis, dialihkan ke pelaporan umum.",
-    };
+    return getMockRoute(query); // Fallback ke mock jika API error
   }
 };
 
 /**
  * Step 2: Specialist Agent
- * Generates the actual response based on the chosen agent persona.
  */
 export const generateAgentResponse = async (
   agent: AgentType,
   query: string
 ): Promise<string> => {
+  const ai = getAI();
+
+  // Mock Response jika tidak ada API Key
+  if (!ai) {
+    return `### Mode Simulasi (Demo)\n\nSistem mendeteksi bahwa **API Key belum dikonfigurasi**. \n\nKarena ini adalah demo, saya mensimulasikan respon untuk agen **${agent}**. Dalam versi live dengan API Key aktif, saya akan memberikan analisis mendalam tentang: "${query}".\n\nSilakan lihat panel visualisasi di sebelah kanan untuk data interaktif.`;
+  }
+
   let systemInstruction = "";
-  const formatInstruction = " SAJIKAN DATA (seperti daftar barang, rincian biaya, atau jurnal) DALAM BENTUK TABEL MARKDOWN AGAR MUDAH DIBACA.";
+  const formatInstruction = " SAJIKAN DATA DALAM BENTUK TABEL MARKDOWN AGAR MUDAH DIBACA.";
 
   switch (agent) {
     case AgentType.SALES_AND_REVENUE:
-      systemInstruction = "Anda adalah Agen Penjualan & Pendapatan. Tugas Anda: Mengelola faktur, pesanan penjualan, dan pelacakan pendapatan. Berikan jawaban profesional terkait transaksi penjualan garmen." + formatInstruction;
+      systemInstruction = "Anda adalah Agen Penjualan & Pendapatan. Kelola faktur dan pesanan." + formatInstruction;
       break;
     case AgentType.PURCHASING_AND_INVENTORY:
-      systemInstruction = "Anda adalah Agen Pembelian & Inventaris. Tugas Anda: Mengelola stok bahan baku (kain, benang, kancing), purchase order, dan pemasok. Berikan data estimasi stok jika diminta." + formatInstruction;
+      systemInstruction = "Anda adalah Agen Pembelian & Inventaris. Kelola stok dan pemasok." + formatInstruction;
       break;
     case AgentType.FINANCIAL_REPORTING:
-      systemInstruction = "Anda adalah Agen Pelaporan Keuangan. Tugas Anda: Menyajikan Laporan Laba Rugi, Neraca, dan Arus Kas. Gunakan bahasa akuntansi formal dan standar." + formatInstruction;
+      systemInstruction = "Anda adalah Agen Laporan Keuangan. Sajikan Neraca/Laba Rugi." + formatInstruction;
       break;
     case AgentType.MANUFACTURING_COST_ACCOUNTING:
-      systemInstruction = "Anda adalah Agen Akuntansi Biaya Manufaktur. Tugas Anda: Menghitung HPP (Harga Pokok Produksi), melacak biaya Job Order, biaya bahan baku, tenaga kerja langsung, dan overhead pabrik. Jelaskan perhitungan biaya secara rinci." + formatInstruction;
+      systemInstruction = "Anda adalah Agen Akuntansi Biaya. Hitung HPP dan Overhead." + formatInstruction;
       break;
     default:
       systemInstruction = "Anda adalah asisten akuntansi umum." + formatInstruction;
@@ -109,9 +139,9 @@ export const generateAgentResponse = async (
       },
     });
 
-    return response.text || "Maaf, saya tidak dapat menghasilkan respon saat ini.";
+    return response.text || "Maaf, tidak ada respon.";
   } catch (error) {
     console.error("Generation error:", error);
-    return "Terjadi kesalahan saat memproses permintaan Anda.";
+    return "Maaf, terjadi kesalahan koneksi API. Pastikan kuota tersedia atau API Key valid.";
   }
 };

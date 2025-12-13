@@ -3,16 +3,15 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  // Menggunakan casting (process as any) untuk menghindari error TypeScript pada akses cwd
   const env = loadEnv(mode, (process as any).cwd(), '');
   
   return {
     plugins: [react()],
     define: {
-      // Strictly replace process.env.API_KEY with the string value
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      // Polyfill process.env to prevent "process is not defined" errors in browser
-      'process.env': {} 
+      // Mengganti 'process.env.API_KEY' di dalam kode dengan nilai string sebenarnya saat build.
+      // Pastikan Anda mengatur Environment Variable 'API_KEY' di dashboard Netlify.
+      'process.env.API_KEY': JSON.stringify(env.API_KEY)
     }
   };
 });
