@@ -466,9 +466,11 @@ const Visualizations: React.FC<Props> = ({
              </div>
           )}
 
-          {(!activeCapability || activeCapability === 'BUAT_PO') && activeCapability !== 'STOK_RENDAH' && activeCapability !== 'DATABASE_PEMASOK' && (
+          {(!activeCapability || activeCapability === 'BUAT_PO' || activeCapability === 'DATA_PO') && activeCapability !== 'STOK_RENDAH' && activeCapability !== 'DATABASE_PEMASOK' && (
             <div className="flex-1 min-h-0 flex flex-col border-t border-slate-100 pt-4">
-               <h3 className="text-sm font-semibold mb-3 text-slate-700">Pesanan Pembelian (PO) Terbaru</h3>
+               <h3 className="text-sm font-semibold mb-3 text-slate-700">
+                 {activeCapability === 'DATA_PO' ? 'Riwayat Pesanan Pembelian' : 'Pesanan Pembelian (PO)'}
+               </h3>
                
                {activeCapability === 'BUAT_PO' && (
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
@@ -505,6 +507,7 @@ const Visualizations: React.FC<Props> = ({
                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
                      <tr>
                        <th className="px-3 py-2">ID PO</th>
+                       <th className="px-3 py-2">Tanggal</th>
                        <th className="px-3 py-2">Supplier</th>
                        <th className="px-3 py-2">Item Utama</th>
                        <th className="px-3 py-2">Status</th>
@@ -514,6 +517,7 @@ const Visualizations: React.FC<Props> = ({
                      {purchaseOrders.map((po) => (
                        <tr key={po.id} className="border-b border-slate-100 hover:bg-slate-50">
                          <td className="px-3 py-2 font-medium text-slate-900">{po.id}</td>
+                         <td className="px-3 py-2 text-slate-500">{po.date}</td>
                          <td className="px-3 py-2">{po.supplier}</td>
                          <td className="px-3 py-2">{po.items}</td>
                          <td className="px-3 py-2">

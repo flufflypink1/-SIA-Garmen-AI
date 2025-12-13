@@ -417,7 +417,10 @@ const App: React.FC = () => {
                         <div className="dot bg-sky-500"></div>Manajemen Database Pemasok
                       </li>
                       <li className={`capability-item ${activeCapability === 'BUAT_PO' ? 'active' : ''}`} onClick={() => setActiveCapability('BUAT_PO')}>
-                        <div className="dot bg-sky-500"></div>Pembuatan Purchase Order
+                        <div className="dot bg-sky-500"></div>Buat Purchase Order Baru
+                      </li>
+                      <li className={`capability-item ${activeCapability === 'DATA_PO' ? 'active' : ''}`} onClick={() => setActiveCapability('DATA_PO')}>
+                        <div className="dot bg-sky-500"></div>Riwayat Purchase Order
                       </li>
                     </>
                   )}
