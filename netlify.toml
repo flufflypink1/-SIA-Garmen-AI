@@ -1,14 +1,11 @@
 [build]
-  # Perintah ini menjalankan instalasi Node.js (npm install)
-  # diikuti dengan instalasi Python (pip install -r requirements.txt)
-  # Dan kemudian menjalankan perintah build utama Anda.
+  # Perintah ini menjalankan instalasi Node.js dan Python
   command = "npm install && pip install -r requirements.txt && npm run build"
-  
+
   # Asumsi folder output (hasil build) adalah 'dist'
   publish = "dist" 
-  
-  # BARIS BARU: Mengatur versi Node.js secara eksplisit
-  environment = { NODE_VERSION = "18" }
 
 [build.environment]
-  PYTHON_VERSION = "3.11"
+  # Semua variabel lingkungan di sini
+  NODE_VERSION = "18" # Memastikan versi Node.js
+  PYTHON_VERSION = "3.11" # Memastikan versi Python
